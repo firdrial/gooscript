@@ -135,16 +135,20 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
     if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && range) {
       try {
         const rects = range.getClientRects();
-        const containerRect = ref.current.getBoundingClientRect();
+        
+        // Get the bounding rect of the actual text content, ignoring block padding/margins
+        const fullRange = document.createRange();
+        fullRange.selectNodeContents(ref.current);
+        const fullRect = fullRange.getBoundingClientRect();
+        
         const cursorRect = rects.length > 0 ? rects[0] : null;
-
         if (cursorRect) {
-          const isAtVisualTop = cursorRect.top <= containerRect.top + 2;
-          const isAtVisualBottom = cursorRect.bottom >= containerRect.bottom - 2;
-
+          const isAtVisualTop = cursorRect.top <= fullRect.top + 2;
+          const isAtVisualBottom = cursorRect.bottom >= fullRect.bottom - 2;
+          
           // Store the exact horizontal pixel position before moving
           const targetX = cursorRect.left;
-
+          
           if (e.key === 'ArrowUp' && isAtVisualTop) {
             e.preventDefault();
             let prevEl = ref.current.previousElementSibling as HTMLElement | null;
@@ -154,22 +158,20 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
             if (prevEl) {
               const prevId = prevEl.getAttribute('data-block-id');
               if (prevId) {
-                // Focus the previous block first
                 prevEl.focus();
                 
-                // Place cursor at the same X coordinate in the target block
-                const targetRect = prevEl.getBoundingClientRect();
-                // Clamp Y to be inside the target element
-                const targetY = targetRect.bottom - 4;
+                const targetFullRange = document.createRange();
+                targetFullRange.selectNodeContents(prevEl);
+                const targetFullRect = targetFullRange.getBoundingClientRect();
                 
-                let pos: { offsetNode: Node; offset: number } | null = null;
+                const targetY = targetFullRect.bottom - 4;
+                let pos: { offsetNode: Node, offset: number } | null = null;
                 if ('caretPositionFromPoint' in document) {
                   pos = (document as any).caretPositionFromPoint(targetX, targetY);
                 } else if ('caretRangeFromPoint' in document) {
                   const r = (document as any).caretRangeFromPoint(targetX, targetY);
                   if (r) pos = { offsetNode: r.startContainer, offset: r.startOffset };
                 }
-
                 if (pos && prevEl.contains(pos.offsetNode)) {
                   const newRange = document.createRange();
                   newRange.setStart(pos.offsetNode, pos.offset);
@@ -178,14 +180,13 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
                   sel?.removeAllRanges();
                   sel?.addRange(newRange);
                 } else {
-                  // Fallback: go to end of previous block
                   onFocusNext(prevId, 'end');
                 }
               }
             }
             return;
           }
-
+          
           if (e.key === 'ArrowDown' && isAtVisualBottom) {
             e.preventDefault();
             let nextEl = ref.current.nextElementSibling as HTMLElement | null;
@@ -195,22 +196,20 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
             if (nextEl) {
               const nextId = nextEl.getAttribute('data-block-id');
               if (nextId) {
-                // Focus the next block first
                 nextEl.focus();
                 
-                // Place cursor at the same X coordinate in the target block
-                const targetRect = nextEl.getBoundingClientRect();
-                // Clamp Y to be inside the target element
-                const targetY = targetRect.top + 4;
+                const targetFullRange = document.createRange();
+                targetFullRange.selectNodeContents(nextEl);
+                const targetFullRect = targetFullRange.getBoundingClientRect();
                 
-                let pos: { offsetNode: Node; offset: number } | null = null;
+                const targetY = targetFullRect.top + 4;
+                let pos: { offsetNode: Node, offset: number } | null = null;
                 if ('caretPositionFromPoint' in document) {
                   pos = (document as any).caretPositionFromPoint(targetX, targetY);
                 } else if ('caretRangeFromPoint' in document) {
                   const r = (document as any).caretRangeFromPoint(targetX, targetY);
                   if (r) pos = { offsetNode: r.startContainer, offset: r.startOffset };
                 }
-
                 if (pos && nextEl.contains(pos.offsetNode)) {
                   const newRange = document.createRange();
                   newRange.setStart(pos.offsetNode, pos.offset);
@@ -219,7 +218,6 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
                   sel?.removeAllRanges();
                   sel?.addRange(newRange);
                 } else {
-                  // Fallback: go to start of next block
                   onFocusNext(nextId, 'start');
                 }
               }
