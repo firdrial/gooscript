@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #1f2937;
+  margin: 0;
+  overflow: hidden;
+}
+
+.sp-page {
+  background: white;
+  width: 816px !important;
+  height: 1056px !important;
+  position: relative;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  margin-bottom: 2rem;
+  flex-shrink: 0 !important;
+  min-width: 816px !important;
+  min-height: 1056px !important;
+  max-width: 816px !important;
+  max-height: 1056px !important;
+}
+
+.sp-page-content {
+  position: absolute;
+  top: 96px !important;
+  bottom: 96px !important;
+  left: 144px !important;
+  right: 96px !important;
+  overflow: hidden;
+  cursor: text;
+  /* Enable native text selection */
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+.sp-page-number {
+  position: absolute;
+  top: 40px;
+  right: 70px;
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 12pt;
+  color: black;
+  user-select: none;
+}
+
+.sp-block {
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 12pt;
+  line-height: 1.2;
+  color: black;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  outline: none;
+  margin: 0;
+  padding: 0;
+  min-height: 1.2em;
+  cursor: text;
+  /* Enable native text selection */
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  box-sizing: border-box;
+}
+
+/* Native dark blue selection highlight */
+::selection {
+  background-color: #1e3a8a;
+  color: white;
+}
+
+.sp-block:focus {
+  outline: none;
+}
+
+.sp-block[data-type="scene-heading"] {
+  text-transform: uppercase;
+  font-weight: bold;
+  padding-top: 1.5em;
+  padding-bottom: 1em;
+}
+
+.sp-block[data-type="action"] {
+  padding-bottom: 1em;
+}
+
+.sp-block[data-type="character"] {
+  text-transform: uppercase;
+  padding-left: 220px;
+  padding-top: 1em;
+  width: 356px;
+}
+
+.sp-block[data-type="dialogue"] {
+  padding-left: 150px;
+  width: 350px;
+  padding-bottom: 0.5em;
+}
+
+.sp-block[data-type="parenthetical"] {
+  padding-left: 190px;
+  width: 386px;
+}
+
+.sp-measurer {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  height: auto;
+  width: 576px;
+  pointer-events: none;
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 12pt;
+  line-height: 1.2;
+  box-sizing: border-box;
+  visibility: hidden;
+}
