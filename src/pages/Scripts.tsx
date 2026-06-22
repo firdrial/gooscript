@@ -1,6 +1,7 @@
 // src/pages/Scripts.tsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { loadProject, saveProject, createNewProject } from '../utils/storage';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { Project } from '../types';
 import ScreenplayEditor from '../components/ScreenplayEditor';
 
@@ -8,16 +9,30 @@ const Scripts = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showClosePrompt, setShowClosePrompt] = useState(false);
+  const isClosing = useRef(false);
 
   useEffect(() => {
     if (!project) {
       setProject(createNewProject('Untitled Screenplay'));
+      setIsDirty(false);
     }
   }, []);
 
   const handleEditorUpdate = useCallback((htmlContent: string) => {
     setProject(prev => {
       if (!prev) return prev;
+      
+      // If the previous content was empty (brand new project), just update it 
+      // to establish the baseline without marking it as "dirty"
+      const isNewProject = prev.scriptContent === '';
+      
+      // Only mark as dirty if it's not a new project AND the content has actually changed
+      if (!isNewProject && prev.scriptContent !== htmlContent) {
+        setIsDirty(true);
+      }
+      
       return {
         ...prev,
         scriptContent: htmlContent,
@@ -28,6 +43,7 @@ const Scripts = () => {
 
   // FIX: Use functional setState to always get the latest project state
   const handleNewCharacter = useCallback((name: string) => {
+    setIsDirty(true);
     setProject(prev => {
       if (!prev) return prev;
       // Check if character already exists (case-insensitive)
@@ -37,7 +53,7 @@ const Scripts = () => {
       return {
         ...prev,
         characters: [
-          ...prev.characters, 
+          ...prev.characters,
           { id: Date.now().toString() + Math.random(), name, bio: '' }
         ]
       };
@@ -45,6 +61,7 @@ const Scripts = () => {
   }, []);
 
   const handleNewLocation = useCallback((name: string) => {
+    setIsDirty(true);
     setProject(prev => {
       if (!prev) return prev;
       // Check if location already exists (case-insensitive)
@@ -54,7 +71,7 @@ const Scripts = () => {
       return {
         ...prev,
         locations: [
-          ...prev.locations, 
+          ...prev.locations,
           { id: Date.now().toString() + Math.random(), name, description: 'BOTH' }
         ]
       };
@@ -64,7 +81,10 @@ const Scripts = () => {
   const handleSave = async () => {
     if (project) {
       const success = await saveProject(project);
-      if (success) alert('Script saved successfully!');
+      if (success) {
+        alert('Script saved successfully!');
+        setIsDirty(false);
+      }
     }
   };
 
@@ -72,8 +92,71 @@ const Scripts = () => {
     setIsLoading(true);
     setError(null);
     const loaded = await loadProject();
-    if (loaded) setProject(loaded);
+    if (loaded) {
+      setProject(loaded);
+      setIsDirty(false);
+    }
     setIsLoading(false);
+  };
+
+  // Listen for File menu actions from the TopBarMenu
+  useEffect(() => {
+    const handleMenuEvent = (e: Event) => {
+      const action = (e as CustomEvent).detail;
+      
+      if (action === 'New') {
+        if (window.confirm('Are you sure you want to create a new project? Unsaved changes will be lost.')) {
+          setProject(createNewProject('Untitled Screenplay'));
+          setIsDirty(false);
+        }
+      } else if (action === 'Open') {
+        handleLoad();
+      } else if (action === 'Save') {
+        handleSave();
+      }
+    };
+
+    window.addEventListener('menu-action', handleMenuEvent);
+    return () => window.removeEventListener('menu-action', handleMenuEvent);
+  }, [project]); // We include 'project' so handleSave always has the latest data
+
+  // Intercept window close to prompt for unsaved changes
+  useEffect(() => {
+    const unlistenPromise = getCurrentWindow().onCloseRequested((event) => {
+      if (isClosing.current) {
+        return; 
+      }
+
+      if (isDirty) {
+        event.preventDefault();
+        setShowClosePrompt(true);
+      }
+    });
+
+    return () => {
+      unlistenPromise.then(unlistenFn => unlistenFn());
+    };
+  }, [isDirty]);
+
+  // Handlers for the custom close prompt modal
+  const handleCloseSave = async () => {
+    if (project) {
+      const success = await saveProject(project);
+      if (success) {
+        isClosing.current = true;
+        await getCurrentWindow().destroy();
+      }
+    }
+    setShowClosePrompt(false);
+  };
+
+  const handleCloseDontSave = async () => {
+    isClosing.current = true;
+    await getCurrentWindow().destroy();
+  };
+
+  const handleCloseCancel = () => {
+    setShowClosePrompt(false);
   };
 
   if (error) {
@@ -114,6 +197,34 @@ const Scripts = () => {
         onNewCharacter={handleNewCharacter}
         onNewLocation={handleNewLocation}
       />
+      {showClosePrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl max-w-sm w-full border border-gray-700">
+            <h3 className="text-lg font-bold mb-4">Unsaved Changes</h3>
+            <p className="mb-6 text-gray-300">You have unsaved changes. Do you want to save before closing?</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={handleCloseCancel}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleCloseDontSave}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded transition-colors"
+              >
+                Don't Save
+              </button>
+              <button 
+                onClick={handleCloseSave}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

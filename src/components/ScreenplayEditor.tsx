@@ -1,5 +1,5 @@
 // src/components/ScreenplayEditor.tsx
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import { useScreenplayLayout, Block, ElementType } from '../hooks/useScreenplayLayout';
 import { ScreenplayBlock } from './ScreenplayBlock';
 import { ELEMENT_TYPES, TIMES_OF_DAY } from '../utils/screenplayLogic';
@@ -23,14 +23,37 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
   onNewCharacter,
   onNewLocation
 }) => {
-  const initialBlocks: Block[] = [
-    { id: 'init-1', type: 'scene-heading', text: '' }
-  ];
+ const parseInitialContent = (html: string | null): Block[] => {
+ if (!html || html.trim() === '') {
+ return [{ id: 'init-1', type: 'scene-heading', text: '' }];
+ }
+ 
+ try {
+ const parser = new DOMParser();
+ const doc = parser.parseFromString(html, 'text/html');
+ const divs = doc.body.querySelectorAll('div[data-type]');
+ 
+ if (divs.length === 0) {
+ return [{ id: 'init-1', type: 'scene-heading', text: '' }];
+ }
+ 
+ return Array.from(divs).map((div, index) => ({
+ id: `loaded-${index}-${Date.now()}`,
+ type: div.getAttribute('data-type') as ElementType,
+ text: div.textContent || ''
+ }));
+ } catch (e) {
+ console.error('Failed to parse initial content:', e);
+ return [{ id: 'init-1', type: 'scene-heading', text: '' }];
+ }
+ };
 
-  const {
-    pages, measurerRef, updateBlockText, updateBlockType,
-    addBlockAfter, deleteBlock
-  } = useScreenplayLayout(initialBlocks);
+ const initialBlocks = useMemo(() => parseInitialContent(_initialContent), [_initialContent]);
+
+ const {
+ pages, measurerRef, updateBlockText, updateBlockType,
+ addBlockAfter, deleteBlock
+ } = useScreenplayLayout(initialBlocks);
 
   const blockRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -44,13 +67,42 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [autocompleteMode, setAutocompleteMode] = useState<'prefix' | 'location' | 'time' | 'character'>('character');
 
+ useEffect(() => {
+ if (onUpdate) {
+ const allBlocks = pages.flatMap(p => p.blocks);
+ const escapeHtml = (text: string) => {
+ return text.replace(/&/g, "&amp;")
+ .replace(/</g, "&lt;")
+ .replace(/>/g, "&gt;")
+ .replace(/"/g, "&quot;")
+ .replace(/'/g, "&#039;");
+ };
+ const html = allBlocks.map(b => `<div data-type="${b.type}">${escapeHtml(b.text || '')}</div>`).join('');
+ onUpdate(html);
+ }
+ }, [pages, onUpdate]);
+
+  // Listen for Edit menu actions from the TopBarMenu
   useEffect(() => {
-    if (onUpdate) {
-      const allBlocks = pages.flatMap(p => p.blocks);
-      const html = allBlocks.map(b => `<p data-element-type="${b.type}">${b.text || ''}</p>`).join('');
-      onUpdate(html);
-    }
-  }, [pages, onUpdate]);
+    const handleMenuEvent = (e: Event) => {
+      const action = (e as CustomEvent).detail;
+      
+      if (action === 'Undo') {
+        document.execCommand('undo');
+      } else if (action === 'Redo') {
+        document.execCommand('redo');
+      } else if (action === 'Cut') {
+        document.execCommand('cut');
+      } else if (action === 'Copy') {
+        document.execCommand('copy');
+      } else if (action === 'Paste') {
+        document.execCommand('paste');
+      }
+    };
+
+    window.addEventListener('menu-action', handleMenuEvent);
+    return () => window.removeEventListener('menu-action', handleMenuEvent);
+  }, []);
 
   const registerRef = useCallback((id: string, el: HTMLDivElement | null) => {
     blockRefs.current[id] = el;

@@ -4,10 +4,12 @@ import Scripts from './pages/Scripts';
 import Characters from './pages/Characters';
 import BeatBoard from './pages/BeatBoard';
 import MindMap from './pages/MindMap';
+import TopBarMenu from './components/TopBarMenu';
 
 function App() {
   return (
     <HashRouter>
+      <TopBarMenu />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Scripts />} />

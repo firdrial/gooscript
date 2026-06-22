@@ -33,11 +33,6 @@ const Layout = () => {
           </NavLink>
         </nav>
 
-        <div className="mt-auto border-t border-gray-800 pt-4">
-          <NavLink to="/settings" className={linkClass}>
-            <Settings size={20} /> Settings
-          </NavLink>
-        </div>
       </aside>
 
       {/* Main Workspace */}
