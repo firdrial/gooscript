@@ -14,6 +14,7 @@ const Scripts = () => {
   const isClosing = useRef(false);
   const baselineContentRef = useRef<string | null>(null);
   const isEditorReady = useRef(false);
+  const [pendingAction, setPendingAction] = useState<'New' | 'Open' | 'Close' | null>(null);
 
   useEffect(() => {
     if (!project) {
@@ -115,19 +116,18 @@ const handleNewLocation = useCallback((name: string) => {
   });
 }, []);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (project) {
       const success = await saveProject(project);
       if (success) {
         alert('Script saved successfully!');
-        // Update the baseline to the newly saved content
         baselineContentRef.current = project.scriptContent;
         setIsDirty(false);
       }
     }
-  };
+  }, [project]);
 
-  const handleLoad = async () => {
+  const handleLoad = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     const loaded = await loadProject();
@@ -136,20 +136,27 @@ const handleNewLocation = useCallback((name: string) => {
       setIsDirty(false);
     }
     setIsLoading(false);
-  };
+  }, []);
 
-  // Listen for File menu actions from the TopBarMenu
   useEffect(() => {
     const handleMenuEvent = (e: Event) => {
       const action = (e as CustomEvent).detail;
       
       if (action === 'New') {
-        if (window.confirm('Are you sure you want to create a new project? Unsaved changes will be lost.')) {
+        if (isDirty) {
+          setPendingAction('New');
+          setShowClosePrompt(true);
+        } else {
           setProject(createNewProject('Untitled Screenplay'));
           setIsDirty(false);
         }
       } else if (action === 'Open') {
-        handleLoad();
+        if (isDirty) {
+          setPendingAction('Open');
+          setShowClosePrompt(true);
+        } else {
+          handleLoad();
+        }
       } else if (action === 'Save') {
         handleSave();
       }
@@ -157,17 +164,16 @@ const handleNewLocation = useCallback((name: string) => {
 
     window.addEventListener('menu-action', handleMenuEvent);
     return () => window.removeEventListener('menu-action', handleMenuEvent);
-  }, [project]); // We include 'project' so handleSave always has the latest data
+  }, [project, isDirty, handleLoad, handleSave]); // Added dependencies
 
   // Intercept window close to prompt for unsaved changes
   useEffect(() => {
     const unlistenPromise = getCurrentWindow().onCloseRequested((event) => {
-      if (isClosing.current) {
-        return; 
-      }
+      if (isClosing.current) return; 
 
       if (isDirty) {
         event.preventDefault();
+        setPendingAction('Close'); // Track that this was a close attempt
         setShowClosePrompt(true);
       }
     });
@@ -182,20 +188,38 @@ const handleNewLocation = useCallback((name: string) => {
     if (project) {
       const success = await saveProject(project);
       if (success) {
-        isClosing.current = true;
-        await getCurrentWindow().destroy();
+        if (pendingAction === 'Close') {
+          isClosing.current = true;
+          await getCurrentWindow().destroy();
+        } else if (pendingAction === 'New') {
+          setProject(createNewProject('Untitled Screenplay'));
+          setIsDirty(false);
+        } else if (pendingAction === 'Open') {
+          handleLoad();
+        }
       }
     }
     setShowClosePrompt(false);
+    setPendingAction(null);
   };
 
   const handleCloseDontSave = async () => {
-    isClosing.current = true;
-    await getCurrentWindow().destroy();
+    if (pendingAction === 'Close') {
+      isClosing.current = true;
+      await getCurrentWindow().destroy();
+    } else if (pendingAction === 'New') {
+      setProject(createNewProject('Untitled Screenplay'));
+      setIsDirty(false);
+    } else if (pendingAction === 'Open') {
+      handleLoad();
+    }
+    setShowClosePrompt(false);
+    setPendingAction(null);
   };
 
   const handleCloseCancel = () => {
     setShowClosePrompt(false);
+    setPendingAction(null);
   };
 
   if (error) {
@@ -240,7 +264,13 @@ const handleNewLocation = useCallback((name: string) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl max-w-sm w-full border border-gray-700">
             <h3 className="text-lg font-bold mb-4">Unsaved Changes</h3>
-            <p className="mb-6 text-gray-300">You have unsaved changes. Do you want to save before closing?</p>
+            <p className="mb-6 text-gray-300">
+              {pendingAction === 'New' 
+                ? 'You have unsaved changes. Do you want to save before creating a new script?' 
+                : pendingAction === 'Open' 
+                ? 'You have unsaved changes. Do you want to save before opening a different script?' 
+                : 'You have unsaved changes. Do you want to save before closing?'}
+            </p>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={handleCloseCancel}
