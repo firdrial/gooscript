@@ -1,5 +1,13 @@
 // src/utils/screenplayLogic.ts
-export type ElementType = 'scene-heading' | 'action' | 'character' | 'dialogue' | 'parenthetical';
+export type ElementType = 
+  | 'scene-heading' 
+  | 'action' 
+  | 'character' 
+  | 'dialogue' 
+  | 'parenthetical' 
+  | 'transition' 
+  | 'shot' 
+  | 'unformatted';
 
 export const ELEMENT_TYPES: { id: ElementType; label: string }[] = [
   { id: 'scene-heading', label: 'Scene Heading' },
@@ -7,10 +15,40 @@ export const ELEMENT_TYPES: { id: ElementType; label: string }[] = [
   { id: 'character', label: 'Character' },
   { id: 'dialogue', label: 'Dialogue' },
   { id: 'parenthetical', label: 'Parenthetical' },
+  { id: 'transition', label: 'Transition' },
+  { id: 'shot', label: 'Shot' },
+  { id: 'unformatted', label: 'Unformatted Text' },
 ];
 
 export const TIMES_OF_DAY: string[] = [
   'DAY', 'NIGHT', 'EVENING', 'MORNING', 'AFTERNOON', 'DAWN', 'DUSK', 'LATER', 'CONTINUOUS'
+];
+
+export const TRANSITION_AUTOCOMPLETE = [
+  'CUT TO:',
+  'FADE OUT.',
+  'FADE IN.',
+  'FADE TO BLACK.',
+  'DISSOLVE TO:',
+  'SMASH CUT TO:',
+  'MATCH CUT TO:',
+  'JUMP CUT TO:',
+  'CUT TO BLACK.',
+  'FADE OUT TO BLACK.',
+  'DISSOLVE TO BLACK.',
+  'WIPE TO:',
+  'IRIS OUT.',
+  'IRIS IN.',
+  'FREEZE FRAME.',
+  'SLOW MOTION.',
+  'TIME LAPSE.',
+  'MONTAGE:',
+  'END MONTAGE.',
+  'FLASHBACK TO:',
+  'FLASH FORWARD TO:',
+  'RETURN TO PRESENT.',
+  'SUPERIMPOSE:',
+  'TITLE CARD:',
 ];
 
 export const getNextTabElementType = (currentType: ElementType): ElementType => {

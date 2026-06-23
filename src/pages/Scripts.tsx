@@ -266,20 +266,6 @@ const handleNewLocation = useCallback((name: string) => {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="bg-gray-950 border-b border-gray-800 p-4 flex justify-between items-center text-white">
-        <div>
-          <h1 className="text-xl font-bold">{project.title}</h1>
-          <p className="text-xs text-gray-400">Last modified: {new Date(project.lastModified).toLocaleString()}</p>
-          <p className="text-xs text-green-400 mt-1">
-            Auto-detected: {project.characters.length} Characters, {project.locations.length} Locations
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={handleLoad} className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm">Load</button>
-          <button onClick={handleSave} className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 text-sm">Save</button>
-        </div>
-      </div>
-
       <ScreenplayEditor 
         key={project.id} 
         initialContent={project.scriptContent} 

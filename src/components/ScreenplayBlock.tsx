@@ -240,6 +240,9 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
       else if (e.key === '3') newType = 'character';
       else if (e.key === '4') newType = 'dialogue';
       else if (e.key === '5') newType = 'parenthetical';
+      else if (e.key === '6') newType = 'transition';
+      else if (e.key === '7') newType = 'shot';
+      else if (e.key === '0') newType = 'unformatted';
 
       if (newType && newType !== block.type) {
         e.preventDefault();
@@ -296,6 +299,23 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
         return;
       }
     }
+
+      // FadeIn-style Tab behavior for new formats
+      if (block.type === 'transition') {
+        if (isBlank) { applyChanges('scene-heading'); }
+        else { const newId = onAddBlock(block.id, 'scene-heading'); setTimeout(() => onFocusNext(newId, 0), 50); }
+        return;
+      }
+      if (block.type === 'shot') {
+        if (isBlank) { applyChanges('action'); }
+        else { const newId = onAddBlock(block.id, 'action'); setTimeout(() => onFocusNext(newId, 0), 50); }
+        return;
+      }
+      if (block.type === 'unformatted') {
+        if (isBlank) { applyChanges('action'); }
+        else { const newId = onAddBlock(block.id, 'action'); setTimeout(() => onFocusNext(newId, 0), 50); }
+        return;
+      }
 
     if (e.key === 'Enter') {
       e.preventDefault();

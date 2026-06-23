@@ -5,6 +5,7 @@ import { ScreenplayBlock } from './ScreenplayBlock';
 import { ELEMENT_TYPES, TIMES_OF_DAY } from '../utils/screenplayLogic';
 import { Character, Location } from '../types';
 import AutocompleteMenu from './AutocompleteMenu';
+import { TRANSITION_AUTOCOMPLETE } from '../utils/screenplayLogic';
 
 interface ScreenplayEditorProps {
   initialContent: string | null;
@@ -65,7 +66,7 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [autocompleteMode, setAutocompleteMode] = useState<'prefix' | 'location' | 'time' | 'character'>('character');
+  const [autocompleteMode, setAutocompleteMode] = useState<'prefix' | 'location' | 'time' | 'character' | 'transition'>('character');
 
  useEffect(() => {
  if (onUpdate) {
@@ -299,7 +300,18 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
       }
     }
 
-    if (newSuggestions.length > 0 && (type === 'character' || type === 'scene-heading')) {
+        else if (type === 'transition') {
+      const upperText = text.toUpperCase();
+      if (upperText.length > 0) {
+        const matches = TRANSITION_AUTOCOMPLETE.filter(option => 
+          option.startsWith(upperText) && option !== upperText
+        );
+        newSuggestions = matches.map(option => ({ label: option, value: option }));
+        mode = 'transition';
+      }
+    }
+
+    if (newSuggestions.length > 0 && (type === 'character' || type === 'scene-heading' || type === 'transition')) {
       setSuggestions(newSuggestions);
       setActiveIndex(0);
       setIsMenuOpen(true);
