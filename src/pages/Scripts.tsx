@@ -12,6 +12,8 @@ const Scripts = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [showClosePrompt, setShowClosePrompt] = useState(false);
   const isClosing = useRef(false);
+  const baselineContentRef = useRef<string | null>(null);
+  const isEditorReady = useRef(false);
 
   useEffect(() => {
     if (!project) {
@@ -20,69 +22,106 @@ const Scripts = () => {
     }
   }, []);
 
+  // Reset baseline and start a "grace period" whenever the project changes
+  useEffect(() => {
+    if (project) {
+      baselineContentRef.current = null;
+      setIsDirty(false);
+      isEditorReady.current = false;
+      
+      // Give the editor time to mount and run its initial layout passes
+      // (useScreenplayLayout updates pages asynchronously after mount)
+      const timer = setTimeout(() => {
+        isEditorReady.current = true;
+      }, 300); 
+      
+      return () => clearTimeout(timer);
+    }
+  }, [project?.id]);
+
   const handleEditorUpdate = useCallback((htmlContent: string) => {
     setProject(prev => {
       if (!prev) return prev;
-      
-      // If the previous content was empty (brand new project), just update it 
-      // to establish the baseline without marking it as "dirty"
-      const isNewProject = prev.scriptContent === '';
-      
-      // Only mark as dirty if it's not a new project AND the content has actually changed
-      if (!isNewProject && prev.scriptContent !== htmlContent) {
-        setIsDirty(true);
-      }
-      
       return {
         ...prev,
         scriptContent: htmlContent,
         lastModified: Date.now()
       };
     });
+
+    // During the grace period, the editor is still doing initial layout.
+    // Just keep updating the baseline without marking as dirty.
+    if (!isEditorReady.current) {
+      baselineContentRef.current = htmlContent;
+      setIsDirty(false);
+      return;
+    }
+
+    // Once ready, establish baseline on the first update if it's null
+    if (baselineContentRef.current === null) {
+      baselineContentRef.current = htmlContent;
+      setIsDirty(false);
+    } else {
+      // Compare against the baseline
+      if (htmlContent !== baselineContentRef.current) {
+        setIsDirty(true);
+      } else {
+        setIsDirty(false);
+      }
+    }
   }, []);
 
-  // FIX: Use functional setState to always get the latest project state
-  const handleNewCharacter = useCallback((name: string) => {
-    setIsDirty(true);
-    setProject(prev => {
-      if (!prev) return prev;
-      // Check if character already exists (case-insensitive)
-      if (prev.characters.find(c => c.name.toUpperCase() === name)) {
-        return prev; // Already exists, no change
-      }
-      return {
-        ...prev,
-        characters: [
-          ...prev.characters,
-          { id: Date.now().toString() + Math.random(), name, bio: '' }
-        ]
-      };
-    });
-  }, []);
+const handleNewCharacter = useCallback((name: string) => {
+  // FIX: Only mark as dirty if we have a valid, non-empty name
+  const cleanName = name.trim();
+  if (!cleanName) return; // Ignore empty names
+  
+  setProject(prev => {
+    if (!prev) return prev;
+    // Check if character already exists (case-insensitive)
+    if (prev.characters.find(c => c.name.toUpperCase() === cleanName.toUpperCase())) {
+      return prev; // Already exists, no change
+    }
+    setIsDirty(true); // Mark dirty only after confirming it's a new, valid character
+    return {
+      ...prev,
+      characters: [
+        ...prev.characters,
+        { id: Date.now().toString() + Math.random(), name: cleanName, bio: '' }
+      ]
+    };
+  });
+}, []);
 
-  const handleNewLocation = useCallback((name: string) => {
-    setIsDirty(true);
-    setProject(prev => {
-      if (!prev) return prev;
-      // Check if location already exists (case-insensitive)
-      if (prev.locations.find(l => l.name.toUpperCase() === name)) {
-        return prev; // Already exists, no change
-      }
-      return {
-        ...prev,
-        locations: [
-          ...prev.locations,
-          { id: Date.now().toString() + Math.random(), name, description: 'BOTH' }
-        ]
-      };
-    });
-  }, []);
+const handleNewLocation = useCallback((name: string) => {
+  // FIX: Only mark as dirty if we have a valid, non-empty name
+  const cleanName = name.trim();
+  if (!cleanName) return; // Ignore empty names
+  
+  setProject(prev => {
+    if (!prev) return prev;
+    // Check if location already exists (case-insensitive)
+    if (prev.locations.find(l => l.name.toUpperCase() === cleanName.toUpperCase())) {
+      return prev; // Already exists, no change
+    }
+    setIsDirty(true); // Mark dirty only after confirming it's a new, valid location
+    return {
+      ...prev,
+      locations: [
+        ...prev.locations,
+        { id: Date.now().toString() + Math.random(), name: cleanName, description: 'BOTH' }
+      ]
+    };
+  });
+}, []);
 
   const handleSave = async () => {
     if (project) {
       const success = await saveProject(project);
       if (success) {
         alert('Script saved successfully!');
+        // Update the baseline to the newly saved content
+        baselineContentRef.current = project.scriptContent;
         setIsDirty(false);
       }
     }

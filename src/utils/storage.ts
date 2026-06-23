@@ -14,7 +14,7 @@ export const createNewProject = (title: string): Project => {
     objects: [],
     beats: [],
     mindMapNodes: [],
-    scriptContent: '<p data-element-type="scene-heading"></p>', // Changed default
+    scriptContent: '<div data-type="scene-heading"></div>', 
   };
 };
 
@@ -69,7 +69,7 @@ export const loadProject = async (): Promise<Project | null> => {
     
     // Fallback for older saves that might not have scriptContent
     if (!project.scriptContent) {
-      project.scriptContent = '<p data-element-type="scene-heading"></p>'; // Changed default
+      project.scriptContent = '<div data-type="scene-heading"></div>'; 
     }
 
     console.log('[LOAD] Successfully parsed project:', project.title);
