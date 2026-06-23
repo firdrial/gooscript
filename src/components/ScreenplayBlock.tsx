@@ -293,12 +293,12 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
         }
         return;
       }
+      
       if (block.type === 'parenthetical') {
         if (isBlank || currentText === '()') { applyChanges('dialogue', ''); }
         else { const newId = onAddBlock(block.id, 'dialogue'); setTimeout(() => onFocusNext(newId, 0), 50); }
         return;
       }
-    }
 
       // FadeIn-style Tab behavior for new formats
       if (block.type === 'transition') {
@@ -306,16 +306,19 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
         else { const newId = onAddBlock(block.id, 'scene-heading'); setTimeout(() => onFocusNext(newId, 0), 50); }
         return;
       }
+
       if (block.type === 'shot') {
         if (isBlank) { applyChanges('action'); }
         else { const newId = onAddBlock(block.id, 'action'); setTimeout(() => onFocusNext(newId, 0), 50); }
         return;
       }
+
       if (block.type === 'unformatted') {
         if (isBlank) { applyChanges('action'); }
         else { const newId = onAddBlock(block.id, 'action'); setTimeout(() => onFocusNext(newId, 0), 50); }
         return;
       }
+    } // <--- MOVED TO HERE TO ENCOMPASS ALL TAB LOGIC
 
     if (e.key === 'Enter') {
       e.preventDefault();
