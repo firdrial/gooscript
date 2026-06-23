@@ -38,11 +38,12 @@ export interface MindMapNode {
 export interface Project {
   id: string;
   title: string;
+  filePath?: string;
   lastModified: number;
   characters: Character[];
   locations: Location[];
   objects: StoryObject[];
   beats: Beat[];
   mindMapNodes: MindMapNode[];
-  scriptContent: string; // For now, just raw text. We'll upgrade this to structured blocks later.
+  scriptContent: string;
 }

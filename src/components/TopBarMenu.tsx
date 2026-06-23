@@ -39,7 +39,7 @@ const TopBarMenu: React.FC = () => {
 
   // Define the menu structure
   const menus = {
-    File: ['New', 'Open', 'Save', 'Export', 'Print'],
+    File: ['New', 'Open', 'Save', 'Save As', 'Export', 'Print'],
     Edit: ['Undo', 'Redo', 'Cut', 'Copy', 'Paste'],
     Document: ['Page Setup'],
   };

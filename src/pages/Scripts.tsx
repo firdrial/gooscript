@@ -1,6 +1,6 @@
 // src/pages/Scripts.tsx
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { loadProject, saveProject, createNewProject } from '../utils/storage';
+import { loadProject, saveProject, saveProjectAs, createNewProject } from '../utils/storage';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { Project } from '../types';
 import ScreenplayEditor from '../components/ScreenplayEditor';
@@ -118,8 +118,29 @@ const handleNewLocation = useCallback((name: string) => {
 
   const handleSave = useCallback(async () => {
     if (project) {
-      const success = await saveProject(project);
-      if (success) {
+      const result = await saveProject(project); // Changed from 'success' to 'result'
+      if (result.success) {
+        // Update the project state with the filePath if it was newly created
+        if (result.updatedProject) {
+          setProject(result.updatedProject);
+        }
+        
+        // Your original isDirty logic remains exactly the same
+        alert('Script saved successfully!');
+        baselineContentRef.current = project.scriptContent;
+        setIsDirty(false);
+      }
+    }
+  }, [project]);
+
+  const handleSaveAs = useCallback(async () => {
+    if (project) {
+      const result = await saveProjectAs(project);
+      if (result.success) {
+        // Update the project state with the new filePath and title
+        if (result.updatedProject) {
+          setProject(result.updatedProject);
+        }
         alert('Script saved successfully!');
         baselineContentRef.current = project.scriptContent;
         setIsDirty(false);
@@ -159,12 +180,14 @@ const handleNewLocation = useCallback((name: string) => {
         }
       } else if (action === 'Save') {
         handleSave();
+      } else if (action === 'Save As') {
+        handleSaveAs();
       }
     };
 
     window.addEventListener('menu-action', handleMenuEvent);
     return () => window.removeEventListener('menu-action', handleMenuEvent);
-  }, [project, isDirty, handleLoad, handleSave]); // Added dependencies
+  }, [project, isDirty, handleLoad, handleSave, handleSaveAs]); // Added handleSaveAs to dependencies
 
   // Intercept window close to prompt for unsaved changes
   useEffect(() => {
@@ -186,8 +209,14 @@ const handleNewLocation = useCallback((name: string) => {
   // Handlers for the custom close prompt modal
   const handleCloseSave = async () => {
     if (project) {
-      const success = await saveProject(project);
-      if (success) {
+      const result = await saveProject(project); // Changed from 'success' to 'result'
+      if (result.success) {
+        // Update the project state with the filePath if it was newly created
+        if (result.updatedProject) {
+          setProject(result.updatedProject);
+        }
+
+        // Your original pendingAction logic remains exactly the same
         if (pendingAction === 'Close') {
           isClosing.current = true;
           await getCurrentWindow().destroy();
