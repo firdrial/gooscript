@@ -157,6 +157,7 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
     } else if (index === 0) {
       updateBlockText(blockId, '');
       updateBlockType(blockId, 'scene-heading');
+      setActiveType('scene-heading');
     }
   }, [pages, deleteBlock, focusBlock, updateBlockText, updateBlockType]);
 
@@ -175,10 +176,12 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
         updateBlockText(activeBlockId, '()');
         updateBlockType(activeBlockId, type);
         setActiveType(type);
+        
+        // Wait for React to update the DOM with '()', then place cursor between parentheses
         requestAnimationFrame(() => {
           const el = blockRefs.current[activeBlockId];
           if (el && el.firstChild && el.firstChild.nodeType === Node.TEXT_NODE) {
-            el.focus();
+            // Removed el.focus() - element never lost focus!
             const range = document.createRange();
             range.setStart(el.firstChild, 1);
             range.collapse(true);
@@ -190,10 +193,7 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
       } else {
         updateBlockType(activeBlockId, type);
         setActiveType(type);
-        requestAnimationFrame(() => {
-          const el = blockRefs.current[activeBlockId];
-          if (el) el.focus();
-        });
+        // Removed requestAnimationFrame and el.focus() entirely
       }
     }
   }, [activeBlockId, activeType, updateBlockText, updateBlockType]);
@@ -442,9 +442,10 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
   return (
     <div className="flex flex-col h-full bg-gray-800 relative">
       <div className="bg-gray-900 border-b border-gray-700 p-2 flex gap-2 shrink-0">
-        {ELEMENT_TYPES.map(t => (
+          {ELEMENT_TYPES.map(t => (
           <button
             key={t.id}
+            onMouseDown={(e) => e.preventDefault()} // <--- ADD THIS
             onClick={() => handleToolbarClick(t.id)}
             className={`px-3 py-1 rounded text-sm font-mono transition-colors cursor-pointer ${
               activeType === t.id ? 'bg-blue-600 text-white font-bold' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'

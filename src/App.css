@@ -106,6 +106,15 @@ body {
   width: 386px;
 }
 
+.sp-block[data-type="transition"] {
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.sp-block[data-type="shot"] {
+  text-transform: uppercase;
+}
+
 .sp-measurer {
   position: fixed;
   top: -9999px;
