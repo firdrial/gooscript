@@ -91,12 +91,21 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
   const handleInput = useCallback(() => {
     if (!ref.current) return;
     const rawText = ref.current.innerText;
-    const text = rawText.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+    
+    // Preserve newlines for unformatted text, normalize spaces for others
+    let text = rawText;
+    if (block.type === 'unformatted') {
+      // [^\S\n] matches whitespace that is NOT a newline
+      text = text.replace(/[^\S\n]+/g, ' ').trim();
+    } else {
+      text = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+    }
 
     lastDomText.current = text;
     onUpdateText(block.id, text);
 
     if (onAutocompleteTrigger && (block.type === 'character' || block.type === 'scene-heading')) {
+      // ... rest of your existing logic
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
@@ -293,7 +302,7 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
         }
         return;
       }
-      
+
       if (block.type === 'parenthetical') {
         if (isBlank || currentText === '()') { applyChanges('dialogue', ''); }
         else { const newId = onAddBlock(block.id, 'dialogue'); setTimeout(() => onFocusNext(newId, 0), 50); }
@@ -302,25 +311,30 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
 
       // FadeIn-style Tab behavior for new formats
       if (block.type === 'transition') {
-        if (isBlank) { applyChanges('scene-heading'); }
-        else { const newId = onAddBlock(block.id, 'scene-heading'); setTimeout(() => onFocusNext(newId, 0), 50); }
+        const newId = onAddBlock(block.id, 'scene-heading');
+        setTimeout(() => onFocusNext(newId, 0), 50);
         return;
       }
 
       if (block.type === 'shot') {
-        if (isBlank) { applyChanges('action'); }
-        else { const newId = onAddBlock(block.id, 'action'); setTimeout(() => onFocusNext(newId, 0), 50); }
+        const newId = onAddBlock(block.id, 'action');
+        setTimeout(() => onFocusNext(newId, 0), 50);
         return;
       }
 
       if (block.type === 'unformatted') {
-        if (isBlank) { applyChanges('action'); }
-        else { const newId = onAddBlock(block.id, 'action'); setTimeout(() => onFocusNext(newId, 0), 50); }
+        const newId = onAddBlock(block.id, 'action');
+        setTimeout(() => onFocusNext(newId, 0), 50);
         return;
       }
     } // <--- MOVED TO HERE TO ENCOMPASS ALL TAB LOGIC
 
     if (e.key === 'Enter') {
+      // Allow native newline insertion for unformatted text
+      if (block.type === 'unformatted') {
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
       if (onBlockExit) onBlockExit(block);

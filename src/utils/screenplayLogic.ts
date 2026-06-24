@@ -71,7 +71,9 @@ export const getEnterElementType = (currentType: ElementType): ElementType => {
     case 'character': return 'dialogue';
     case 'dialogue': return 'action';
     case 'parenthetical': return 'dialogue';
-    default: return 'action';
+    case 'transition': return 'scene-heading'; // Enter on Transition -> Scene Heading
+    case 'shot': return 'action';              // Enter on Shot -> Action
+    default: return 'action'; // Unformatted is handled natively in ScreenplayBlock
   }
 };
 
