@@ -11,7 +11,7 @@ const Layout = () => {
     }`;
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white font-sans">
+    <div className="flex h-full bg-gray-900 text-white font-sans">
       {/* Sidebar */}
       <aside className="w-64 bg-gray-950 p-4 flex flex-col border-r border-gray-800">
         <div className="text-2xl font-bold mb-8 px-4 text-blue-400">

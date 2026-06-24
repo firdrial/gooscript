@@ -265,7 +265,7 @@ const handleNewLocation = useCallback((name: string) => {
   if (!project) return <div className="p-8 text-white"><button onClick={() => setProject(createNewProject('New Screenplay'))} className="px-4 py-2 bg-blue-600 rounded">Create New Project</button></div>;
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-full">
       <ScreenplayEditor 
         key={project.id} 
         initialContent={project.scriptContent} 

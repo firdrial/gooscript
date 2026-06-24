@@ -9,15 +9,21 @@ import TopBarMenu from './components/TopBarMenu';
 function App() {
   return (
     <HashRouter>
-      <TopBarMenu />
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Scripts />} />
-          <Route path="characters" element={<Characters />} />
-          <Route path="beatboard" element={<BeatBoard />} />
-          <Route path="mindmap" element={<MindMap />} />
-        </Route>
-      </Routes>
+      {/* Root container takes exactly 100vh and prevents window scrolling */}
+      <div className="flex flex-col h-screen overflow-hidden bg-gray-900">
+        <TopBarMenu />
+        {/* This wrapper takes up the remaining vertical space */}
+        <div className="flex-grow overflow-hidden">
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Scripts />} />
+              <Route path="characters" element={<Characters />} />
+              <Route path="beatboard" element={<BeatBoard />} />
+              <Route path="mindmap" element={<MindMap />} />
+            </Route>
+          </Routes>
+        </div>
+      </div>
     </HashRouter>
   );
 }

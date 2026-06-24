@@ -45,26 +45,33 @@ const TopBarMenu: React.FC = () => {
   };
 
   return (
-    <div className="top-bar-menu" ref={menuBarRef}>
+    <div 
+      className="flex items-center bg-gray-900 border-b border-gray-700 px-2.5 h-8 shrink-0 font-sans text-sm select-none" 
+      ref={menuBarRef}
+    >
       {Object.keys(menus).map((menuName) => (
         <div
           key={menuName}
-          className={`menu-item ${activeMenu === menuName ? 'active' : ''}`}
+          className={`relative px-2.5 py-1 cursor-pointer rounded transition-colors ${
+            activeMenu === menuName 
+              ? 'bg-gray-700 text-white' 
+              : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+          }`}
           onClick={() => handleTopLevelClick(menuName)}
           onMouseEnter={() => handleTopLevelHover(menuName)}
         >
-          <span className="menu-title">{menuName}</span>
+          <span>{menuName}</span>
           {activeMenu === menuName && (
-            <div className="dropdown-menu">
+            <div className="absolute top-full left-0 bg-gray-800 border border-gray-700 rounded shadow-lg min-w-40 py-1 z-50 mt-0.5">
               {menus[menuName as keyof typeof menus].map((item) => (
                 <div
                   key={item}
-                  className="dropdown-item"
+                  className="px-3 py-1.5 cursor-pointer text-gray-300 hover:bg-blue-600 hover:text-white transition-colors"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleMenuAction(item)
-                }}
+                    handleMenuAction(item);
+                  }}
                 >
                   {item}
                 </div>
