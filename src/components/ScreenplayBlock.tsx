@@ -150,15 +150,14 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
         fullRange.selectNodeContents(ref.current);
         const fullRect = fullRange.getBoundingClientRect();
         
-        const cursorRect = rects.length > 0 ? rects[0] : null;
-        if (cursorRect) {
-          const isAtVisualTop = cursorRect.top <= fullRect.top + 2;
-          const isAtVisualBottom = cursorRect.bottom >= fullRect.bottom - 2;
-          
-          // Store the exact horizontal pixel position before moving
-          const targetX = cursorRect.left;
-          
-          if (e.key === 'ArrowUp' && isAtVisualTop) {
+           const cursorRect = rects.length > 0 ? rects[0] : null;
+
+            // If the block is empty, cursorRect is null. We assume it's at the top/bottom and use the block's left edge.
+            const isAtVisualTop = !cursorRect || cursorRect.top <= fullRect.top + 2;
+            const isAtVisualBottom = !cursorRect || cursorRect.bottom >= fullRect.bottom - 2;
+            const targetX = cursorRect ? cursorRect.left : fullRect.left;
+
+            if (e.key === 'ArrowUp' && isAtVisualTop) {
             e.preventDefault();
             let prevEl = ref.current.previousElementSibling as HTMLElement | null;
             while (prevEl && !prevEl.hasAttribute('data-block-id')) {
@@ -233,7 +232,6 @@ export const ScreenplayBlock: React.FC<ScreenplayBlockProps> = ({
             }
             return;
           }
-        }
       } catch {
         // Fall through to default behavior if measurement fails
       }
