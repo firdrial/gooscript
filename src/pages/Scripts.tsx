@@ -1,6 +1,7 @@
 // src/pages/Scripts.tsx
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { loadProject, saveProject, saveProjectAs, createNewProject } from '../utils/storage';
+import { openPDFPreview, printPDF } from '../utils/pdfGenerator';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { Project } from '../types';
 import ScreenplayEditor from '../components/ScreenplayEditor';
@@ -159,8 +160,8 @@ const handleNewLocation = useCallback((name: string) => {
     setIsLoading(false);
   }, []);
 
-  useEffect(() => {
-    const handleMenuEvent = (e: Event) => {
+    useEffect(() => {
+    const handleMenuEvent = async (e: Event) => {
       const action = (e as CustomEvent).detail;
       
       if (action === 'New') {
@@ -181,8 +182,33 @@ const handleNewLocation = useCallback((name: string) => {
       } else if (action === 'Save') {
         handleSave();
       } else if (action === 'Save As') {
+        
         handleSaveAs();
-      }
+                  } else if (action === 'Print Preview') {
+            if (project) {
+              try {
+                alert('Starting Print Preview...');
+                await openPDFPreview(project.title, project.scriptContent);
+              } catch (error) {
+                console.error('Print Preview Error:', error);
+                alert('Print Preview failed: ' + (error as Error).message);
+              }
+            } else {
+              alert('No project loaded!');
+            }
+         } else if (action === 'Print') {
+            if (project) {
+              try {
+                alert('Starting Print...');
+                await printPDF(project.title, project.scriptContent);
+              } catch (error) {
+                console.error('Print Error:', error);
+                alert('Print failed: ' + (error as Error).message);
+              }
+            } else {
+              alert('No project loaded!');
+            }
+         }
     };
 
     window.addEventListener('menu-action', handleMenuEvent);
