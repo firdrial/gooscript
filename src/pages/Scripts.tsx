@@ -1,10 +1,10 @@
 // src/pages/Scripts.tsx
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { loadProject, saveProject, saveProjectAs, createNewProject } from '../utils/storage';
-import { openPDFPreview, printPDF } from '../utils/pdfGenerator';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { Project } from '../types';
 import ScreenplayEditor from '../components/ScreenplayEditor';
+import PrintPreviewModal from '../components/PrintPreviewModal';
 
 const Scripts = () => {
   const [project, setProject] = useState<Project | null>(null);
@@ -16,6 +16,8 @@ const Scripts = () => {
   const baselineContentRef = useRef<string | null>(null);
   const isEditorReady = useRef(false);
   const [pendingAction, setPendingAction] = useState<'New' | 'Open' | 'Close' | null>(null);
+  const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState({ title: '', htmlContent: '' });
 
   useEffect(() => {
     if (!project) {
@@ -182,33 +184,18 @@ const handleNewLocation = useCallback((name: string) => {
       } else if (action === 'Save') {
         handleSave();
       } else if (action === 'Save As') {
-        
         handleSaveAs();
-                  } else if (action === 'Print Preview') {
-            if (project) {
-              try {
-                alert('Starting Print Preview...');
-                await openPDFPreview(project.title, project.scriptContent);
-              } catch (error) {
-                console.error('Print Preview Error:', error);
-                alert('Print Preview failed: ' + (error as Error).message);
-              }
-            } else {
-              alert('No project loaded!');
-            }
-         } else if (action === 'Print') {
-            if (project) {
-              try {
-                alert('Starting Print...');
-                await printPDF(project.title, project.scriptContent);
-              } catch (error) {
-                console.error('Print Error:', error);
-                alert('Print failed: ' + (error as Error).message);
-              }
-            } else {
-              alert('No project loaded!');
-            }
-         }
+      } else if (action === 'Print Preview' || action === 'Print') {
+        if (project) {
+          setPreviewData({
+            title: project.title || 'Untitled Screenplay',
+            htmlContent: project.scriptContent || ''
+          });
+          setIsPrintPreviewOpen(true);
+        } else {
+          alert('No project loaded!');
+        }
+      }
     };
 
     window.addEventListener('menu-action', handleMenuEvent);
@@ -300,6 +287,12 @@ const handleNewLocation = useCallback((name: string) => {
         onUpdate={handleEditorUpdate} 
         onNewCharacter={handleNewCharacter}
         onNewLocation={handleNewLocation}
+      />
+      <PrintPreviewModal
+        isOpen={isPrintPreviewOpen}
+        onClose={() => setIsPrintPreviewOpen(false)}
+        title={previewData.title}
+        htmlContent={previewData.htmlContent}
       />
       {showClosePrompt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
