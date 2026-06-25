@@ -14,8 +14,7 @@ const styles = StyleSheet.create({
   page: {
     fontFamily: 'Courier',
     fontSize: 12,
-    lineHeight: 1.5,
-    padding: 60,
+    padding: 72, // Standard 1-inch screenplay margins
     color: '#000',
   },
   sceneHeading: {
@@ -43,9 +42,9 @@ const styles = StyleSheet.create({
   },
   dialogue: {
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 18,
-    width: '80%',
+    width: '60%',
     marginLeft: '10%',
   },
   transition: {
@@ -84,9 +83,12 @@ export const ScreenplayPDF = ({ title, blocks }: ScreenplayPDFProps) => (
 export const parseHtmlToBlocks = (htmlContent: string): ScreenplayBlock[] => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlContent, 'text/html');
-  const divs = doc.body.querySelectorAll('div[data-type]');
-  return Array.from(divs).map(div => ({
-    type: div.getAttribute('data-type') || 'action',
-    text: div.textContent || '',
-  }));
+  
+  // Broadened selector: catches div, p, span, or any element with data-type
+  const elements = doc.body.querySelectorAll('[data-type]');
+  
+  return Array.from(elements).map(el => ({
+    type: el.getAttribute('data-type') || 'action',
+    text: el.textContent?.trim() || '',
+  })).filter(block => block.text.length > 0); // Crucial: Filter out empty blocks to prevent premature page breaks
 };

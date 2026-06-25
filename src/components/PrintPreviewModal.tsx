@@ -24,7 +24,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({ isOpen, onClose, 
       setError(null);
       try {
         const blocks = parseHtmlToBlocks(htmlContent);
-        // Use the pdf() function to generate the blob directly
+        // Fix: Pass the ScreenplayPDF component to pdf()
         const blob = await pdf(<ScreenplayPDF title={title} blocks={blocks} />).toBlob();
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
