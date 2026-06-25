@@ -28,9 +28,9 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({ isOpen, onClose, 
         const blob = await pdf(<ScreenplayPDF title={title} blocks={blocks} />).toBlob();
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to generate preview.');
+        } catch (err) {
+        console.error('PDF generation error:', err);
+        setError(`Failed to generate preview: ${err instanceof Error ? err.message : 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }

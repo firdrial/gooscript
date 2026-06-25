@@ -129,7 +129,6 @@ const handleNewLocation = useCallback((name: string) => {
         }
         
         // Your original isDirty logic remains exactly the same
-        alert('Script saved successfully!');
         baselineContentRef.current = project.scriptContent;
         setIsDirty(false);
       }
@@ -144,7 +143,6 @@ const handleNewLocation = useCallback((name: string) => {
         if (result.updatedProject) {
           setProject(result.updatedProject);
         }
-        alert('Script saved successfully!');
         baselineContentRef.current = project.scriptContent;
         setIsDirty(false);
       }

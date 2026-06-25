@@ -1,4 +1,20 @@
-import { Document, Page, Text, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, StyleSheet, Font } from '@react-pdf/renderer';
+
+// 1. Import the local font files (Vite will automatically resolve these to valid URLs)
+import CourierPrimeRegular from '../assets/fonts/CourierPrime-Regular.ttf';
+import CourierPrimeBold from '../assets/fonts/CourierPrime-Bold.ttf';
+import CourierPrimeItalic from '../assets/fonts/CourierPrime-Italic.ttf';
+import CourierPrimeBoldItalic from '../assets/fonts/CourierPrime-BoldItalic.ttf';
+
+Font.register({
+  family: 'Courier Prime',
+  fonts: [
+    { src: CourierPrimeRegular, fontWeight: 'normal', fontStyle: 'normal' },
+    { src: CourierPrimeBold, fontWeight: 'bold', fontStyle: 'normal' },
+    { src: CourierPrimeItalic, fontWeight: 'normal', fontStyle: 'italic' },
+    { src: CourierPrimeBoldItalic, fontWeight: 'bold', fontStyle: 'italic' },
+  ]
+} as any);
 
 export interface ScreenplayBlock {
   type: string;
@@ -12,14 +28,17 @@ export interface ScreenplayPDFProps {
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: 'Courier',
+    fontFamily: 'Courier Prime', 
     fontSize: 12,
-    padding: 72, // Standard 1-inch screenplay margins
+    paddingTop: 72,
+    paddingRight: 72,
+    paddingBottom: 72,
+    paddingLeft: 72,
     color: '#000',
   },
   sceneHeading: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: 'bold', // This will now correctly use the bundled Bold font
     marginBottom: 18,
     textTransform: 'uppercase',
   },
@@ -55,7 +74,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export const ScreenplayPDF = ({ title, blocks }: ScreenplayPDFProps) => (
+export const ScreenplayPDF = ({ blocks }: ScreenplayPDFProps) => (
   <Document>
     <Page size="LETTER" style={styles.page}>
       {blocks.map((block, index) => {
@@ -84,11 +103,10 @@ export const parseHtmlToBlocks = (htmlContent: string): ScreenplayBlock[] => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlContent, 'text/html');
   
-  // Broadened selector: catches div, p, span, or any element with data-type
   const elements = doc.body.querySelectorAll('[data-type]');
   
   return Array.from(elements).map(el => ({
     type: el.getAttribute('data-type') || 'action',
     text: el.textContent?.trim() || '',
-  })).filter(block => block.text.length > 0); // Crucial: Filter out empty blocks to prevent premature page breaks
+  })).filter(block => block.text.length > 0); 
 };
