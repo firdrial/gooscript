@@ -183,7 +183,7 @@ const handleNewLocation = useCallback((name: string) => {
         handleSave();
       } else if (action === 'Save As') {
         handleSaveAs();
-      } else if (action === 'Print Preview' || action === 'Print') {
+      } else if (action === 'Print') {
         if (project) {
           setPreviewData({
             title: project.title || 'Untitled Screenplay',
