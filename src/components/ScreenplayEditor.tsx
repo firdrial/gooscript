@@ -6,6 +6,7 @@ import { ELEMENT_TYPES, TIMES_OF_DAY } from '../utils/screenplayLogic';
 import { Character, Location } from '../types';
 import AutocompleteMenu from './AutocompleteMenu';
 import { TRANSITION_AUTOCOMPLETE } from '../utils/screenplayLogic';
+import { useCrossBlockSelection } from '../hooks/useCrossBlockSelection';
 
 interface ScreenplayEditorProps {
   initialContent: string | null;
@@ -142,6 +143,15 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
       }
     });
   }, []);
+
+  const allBlocks = pages.flatMap(p => p.blocks);
+  const { selectionRects } = useCrossBlockSelection(
+    blockRefs as React.MutableRefObject<Record<string, HTMLElement | null>>,
+    allBlocks,
+    updateBlockText,
+    deleteBlock,
+    focusBlock
+  );
 
   const handleAddBlock = useCallback((blockId: string, type: ElementType, text: string = '') => {
     return addBlockAfter(blockId, type, text);
@@ -440,7 +450,7 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
   }, [activeBlockId, updateBlockText, updateBlockType, addBlockAfter, focusBlock]);
 
   return (
-    <div className="flex flex-col h-full bg-gray-800 relative">
+    <div data-editor-container className="flex flex-col h-full bg-gray-800 relative">
       <div className="bg-gray-900 border-b border-gray-700 p-2 flex gap-2 shrink-0">
           {ELEMENT_TYPES.map(t => (
           <button
@@ -501,6 +511,23 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
           onClose={() => setIsMenuOpen(false)}
         />
       )}
+
+      {selectionRects.map((rect, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'fixed',
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+            backgroundColor: 'rgba(0, 120, 215, 0.3)',
+            pointerEvents: 'none',
+            zIndex: 1000,
+            mixBlendMode: 'multiply'
+          }}
+        />
+      ))}
     </div>
   );
 };
