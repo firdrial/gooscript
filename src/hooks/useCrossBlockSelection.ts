@@ -164,7 +164,6 @@ export const useCrossBlockSelection = (
     };
   }, [calculateRects]);
 
-  // Mouse event handlers - attached to document for reliability
   const handleMouseDown = useCallback((e: MouseEvent) => {
     // Ignore clicks on buttons, menus, etc.
     const target = e.target as HTMLElement;
@@ -172,9 +171,15 @@ export const useCrossBlockSelection = (
       return;
     }
 
+    // Don't clear selection on right-click
+    if (e.button === 2) {
+      return;
+    }
+
     // Check if clicking inside a block
     const blockEl = (e.target as HTMLElement).closest('[data-block-id]') as HTMLElement;
     if (!blockEl) {
+      // Clicking outside any block - clear selection
       clearSelection();
       return;
     }
@@ -183,14 +188,17 @@ export const useCrossBlockSelection = (
     const pos = getCaretPositionFromPoint(e.clientX, e.clientY);
     if (!pos) return;
 
-    // Start tracking the drag
-    isDragging.current = true;
-    dragStarted.current = false;
-    setStartSelection(pos);
-    setEndSelection(pos);
-    
-    // Clear any existing native selection
-    window.getSelection()?.removeAllRanges();
+    // Only start a new selection if we're not already in one
+    // and we're clicking at a different position
+    if (!isDragging.current) {
+      isDragging.current = true;
+      dragStarted.current = false;
+      setStartSelection(pos);
+      setEndSelection(pos);
+      
+      // Clear any existing native selection
+      window.getSelection()?.removeAllRanges();
+    }
   }, [clearSelection, getCaretPositionFromPoint]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -228,11 +236,33 @@ export const useCrossBlockSelection = (
     };
   }, [handleMouseDown, handleMouseMove, handleMouseUp]);
 
-  // Clear selection when clicking outside editor
+  // Handle context menu (right-click) - don't clear selection
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      // If we have an active selection and right-clicking within editor, keep it
+      if (selectionRects.length > 0) {
+        const editorContainer = document.querySelector('[data-editor-container]');
+        if (editorContainer && editorContainer.contains(e.target as Node)) {
+          // Allow context menu but don't clear selection
+          return;
+        }
+      }
+    };
+    
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, [selectionRects.length]);
+  
+  // Clear selection when clicking outside editor (but ignore right-clicks and buttons)
   useEffect(() => {
     const handleGlobalMouseDown = (e: MouseEvent) => {
       const editorContainer = document.querySelector('[data-editor-container]');
       const target = e.target as HTMLElement;
+      
+      // Don't clear on right-click (context menu)
+      if (e.button === 2) {
+        return;
+      }
       
       // Ignore buttons and menus
       if (target.tagName === 'BUTTON' || target.closest('button') || target.tagName === 'A') {
@@ -245,8 +275,22 @@ export const useCrossBlockSelection = (
       }
     };
     
+    // Prevent context menu from clearing selection
+    const handleContextMenu = (e: MouseEvent) => {
+      const editorContainer = document.querySelector('[data-editor-container]');
+      if (editorContainer && editorContainer.contains(e.target as Node)) {
+        // Don't prevent default, just don't clear selection
+        return;
+      }
+    };
+    
     document.addEventListener('mousedown', handleGlobalMouseDown);
-    return () => document.removeEventListener('mousedown', handleGlobalMouseDown);
+    document.addEventListener('contextmenu', handleContextMenu);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleGlobalMouseDown);
+      document.removeEventListener('contextmenu', handleContextMenu);
+    };
   }, [clearSelection]);
 
   // Clipboard handling
@@ -299,9 +343,11 @@ export const useCrossBlockSelection = (
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (selectionRects.length > 0 && startSelection && endSelection) {
-        // Don't clear selection for copy/paste shortcuts
-        const isCopyPaste = (e.ctrlKey || e.metaKey) && ['c', 'x', 'v', 'a'].includes(e.key.toLowerCase());
-        if (isCopyPaste) return;
+        // Check for copy/cut/paste shortcuts - don't clear selection for these
+        if ((e.ctrlKey || e.metaKey) && ['c', 'x', 'v', 'a'].includes(e.key.toLowerCase())) {
+          // Let the default copy/cut/paste handlers deal with this
+          return;
+        }
 
         const startIndex = blocks.findIndex(b => b.id === startSelection.blockId);
         const endIndex = blocks.findIndex(b => b.id === endSelection.blockId);
@@ -322,9 +368,11 @@ export const useCrossBlockSelection = (
           focusBlock(last.blockId, last.offset);
           clearSelection();
         } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          // Typing a character - delete selection and insert character
           deleteSelectionAndMerge(startSelection, endSelection, blocks, updateBlockText, deleteBlock);
           clearSelection();
         } else {
+          // Any other key clears selection
           clearSelection();
         }
       }
