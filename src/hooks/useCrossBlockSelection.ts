@@ -31,6 +31,29 @@ export const useCrossBlockSelection = (
   const isDragging = useRef(false);
   const dragStarted = useRef(false);
 
+  // Refs to hold latest state for event listeners that shouldn't be re-registered constantly
+  const startSelectionRef = useRef<SelectionPoint | null>(null);
+  const endSelectionRef = useRef<SelectionPoint | null>(null);
+  const selectionRectsRef = useRef<SelectionRect[]>([]);
+  const blocksRef = useRef<Block[]>(blocks);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    startSelectionRef.current = startSelection;
+  }, [startSelection]);
+
+  useEffect(() => {
+    endSelectionRef.current = endSelection;
+  }, [endSelection]);
+
+  useEffect(() => {
+    selectionRectsRef.current = selectionRects;
+  }, [selectionRects]);
+
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
+
   const clearSelection = useCallback(() => {
     setStartSelection(null);
     setEndSelection(null);
@@ -165,21 +188,33 @@ export const useCrossBlockSelection = (
   }, [calculateRects]);
 
   const handleMouseDown = useCallback((e: MouseEvent) => {
-    // Ignore clicks on buttons, menus, etc.
     const target = e.target as HTMLElement;
-    if (target.tagName === 'BUTTON' || target.closest('button') || target.tagName === 'A') {
-      return;
-    }
 
     // Don't clear selection on right-click
     if (e.button === 2) {
       return;
     }
 
+    // Ignore clicks on buttons, links, the top menu bar, or any other UI chrome
+    if (
+      target.tagName === 'BUTTON' ||
+      target.closest('button') ||
+      target.tagName === 'A' ||
+      target.closest('[data-menu-bar]') ||
+      target.closest('[data-editor-container]') === null && !target.closest('[data-block-id]')
+    ) {
+      // If clicking completely outside the editor container AND not on a block, clear selection
+      const editorContainer = document.querySelector('[data-editor-container]');
+      if (editorContainer && !editorContainer.contains(target) && !target.closest('[data-menu-bar]')) {
+        clearSelection();
+      }
+      return;
+    }
+
     // Check if clicking inside a block
-    const blockEl = (e.target as HTMLElement).closest('[data-block-id]') as HTMLElement;
+    const blockEl = target.closest('[data-block-id]') as HTMLElement;
     if (!blockEl) {
-      // Clicking outside any block - clear selection
+      // Clicking inside editor container but outside any block - clear selection
       clearSelection();
       return;
     }
@@ -189,7 +224,6 @@ export const useCrossBlockSelection = (
     if (!pos) return;
 
     // Only start a new selection if we're not already in one
-    // and we're clicking at a different position
     if (!isDragging.current) {
       isDragging.current = true;
       dragStarted.current = false;
@@ -252,8 +286,8 @@ export const useCrossBlockSelection = (
     document.addEventListener('contextmenu', handleContextMenu);
     return () => document.removeEventListener('contextmenu', handleContextMenu);
   }, [selectionRects.length]);
-  
-  // Clear selection when clicking outside editor (but ignore right-clicks and buttons)
+
+  // Clear selection when clicking outside editor (but ignore right-clicks, buttons, and the menu bar)
   useEffect(() => {
     const handleGlobalMouseDown = (e: MouseEvent) => {
       const editorContainer = document.querySelector('[data-editor-container]');
@@ -264,66 +298,80 @@ export const useCrossBlockSelection = (
         return;
       }
       
-      // Ignore buttons and menus
-      if (target.tagName === 'BUTTON' || target.closest('button') || target.tagName === 'A') {
+      // Ignore buttons, links, and the top menu bar
+      if (
+        target.tagName === 'BUTTON' ||
+        target.closest('button') ||
+        target.tagName === 'A' ||
+        target.closest('[data-menu-bar]')
+      ) {
         return;
       }
 
-      // If clicking outside editor, clear selection
-      if (editorContainer && !editorContainer.contains(target)) {
+      // If clicking outside editor AND outside the menu bar, clear selection
+      const menuBar = document.querySelector('[data-menu-bar]');
+      if (editorContainer && !editorContainer.contains(target) && !(menuBar && menuBar.contains(target))) {
         clearSelection();
       }
     };
     
-    // Prevent context menu from clearing selection
-    const handleContextMenu = (e: MouseEvent) => {
-      const editorContainer = document.querySelector('[data-editor-container]');
-      if (editorContainer && editorContainer.contains(e.target as Node)) {
-        // Don't prevent default, just don't clear selection
-        return;
-      }
-    };
-    
     document.addEventListener('mousedown', handleGlobalMouseDown);
-    document.addEventListener('contextmenu', handleContextMenu);
     
     return () => {
       document.removeEventListener('mousedown', handleGlobalMouseDown);
-      document.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [clearSelection]);
 
-  // Clipboard handling
+  // Clipboard handling - uses refs so listeners are only registered once
   useEffect(() => {
     const handleCopy = (e: ClipboardEvent) => {
-      if (selectionRects.length > 0 && startSelection && endSelection) {
+      const start = startSelectionRef.current;
+      const end = endSelectionRef.current;
+      const rects = selectionRectsRef.current;
+      const currentBlocks = blocksRef.current;
+
+      if (rects.length > 0 && start && end) {
         e.preventDefault();
-        const { html, text } = getSelectedContent(startSelection, endSelection, blocks, blockRefs);
+        const { html, text } = getSelectedContent(start, end, currentBlocks, blockRefs);
         e.clipboardData?.setData('text/html', html);
         e.clipboardData?.setData('text/plain', text);
       }
     };
 
     const handleCut = (e: ClipboardEvent) => {
-      if (selectionRects.length > 0 && startSelection && endSelection) {
+      const start = startSelectionRef.current;
+      const end = endSelectionRef.current;
+      const rects = selectionRectsRef.current;
+      const currentBlocks = blocksRef.current;
+
+      if (rects.length > 0 && start && end) {
         e.preventDefault();
-        const { html, text } = getSelectedContent(startSelection, endSelection, blocks, blockRefs);
+        const { html, text } = getSelectedContent(start, end, currentBlocks, blockRefs);
         e.clipboardData?.setData('text/html', html);
         e.clipboardData?.setData('text/plain', text);
-        deleteSelectionAndMerge(startSelection, endSelection, blocks, updateBlockText, deleteBlock);
+        deleteSelectionAndMerge(start, end, currentBlocks, updateBlockText, deleteBlock);
         clearSelection();
       }
     };
 
-    const handlePaste = () => {
-      if (selectionRects.length > 0 && startSelection && endSelection) {
-        deleteSelectionAndMerge(startSelection, endSelection, blocks, updateBlockText, deleteBlock);
-        const startIndex = blocks.findIndex(b => b.id === startSelection.blockId);
-        const endIndex = blocks.findIndex(b => b.id === endSelection.blockId);
+    const handlePaste = (e: ClipboardEvent) => {
+      const start = startSelectionRef.current;
+      const end = endSelectionRef.current;
+      const rects = selectionRectsRef.current;
+      const currentBlocks = blocksRef.current;
+
+      if (rects.length > 0 && start && end) {
+        e.preventDefault();
+        deleteSelectionAndMerge(start, end, currentBlocks, updateBlockText, deleteBlock);
+        const startIndex = currentBlocks.findIndex(b => b.id === start.blockId);
+        const endIndex = currentBlocks.findIndex(b => b.id === end.blockId);
         const isForward = startIndex <= endIndex;
-        const first = isForward ? startSelection : endSelection;
+        const first = isForward ? start : end;
         
-        focusBlock(first.blockId, first.offset);
+        // Let React process the deletion first, then focus
+        setTimeout(() => {
+          focusBlock(first.blockId, first.offset);
+        }, 0);
         clearSelection();
       }
     };
@@ -337,27 +385,32 @@ export const useCrossBlockSelection = (
       document.removeEventListener('cut', handleCut);
       document.removeEventListener('paste', handlePaste);
     };
-  }, [selectionRects, startSelection, endSelection, blocks, blockRefs, updateBlockText, deleteBlock, focusBlock, clearSelection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockRefs, updateBlockText, deleteBlock, focusBlock, clearSelection]);
 
-  // Keyboard handling
+  // Keyboard handling - uses refs so listeners are only registered once
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (selectionRects.length > 0 && startSelection && endSelection) {
-        // Check for copy/cut/paste shortcuts - don't clear selection for these
+      const rects = selectionRectsRef.current;
+      const start = startSelectionRef.current;
+      const end = endSelectionRef.current;
+      const currentBlocks = blocksRef.current;
+
+      if (rects.length > 0 && start && end) {
+        // Check for copy/cut/paste/select-all shortcuts - don't clear selection for these
         if ((e.ctrlKey || e.metaKey) && ['c', 'x', 'v', 'a'].includes(e.key.toLowerCase())) {
-          // Let the default copy/cut/paste handlers deal with this
           return;
         }
 
-        const startIndex = blocks.findIndex(b => b.id === startSelection.blockId);
-        const endIndex = blocks.findIndex(b => b.id === endSelection.blockId);
+        const startIndex = currentBlocks.findIndex(b => b.id === start.blockId);
+        const endIndex = currentBlocks.findIndex(b => b.id === end.blockId);
         const isForward = startIndex <= endIndex;
-        const first = isForward ? startSelection : endSelection;
-        const last = isForward ? endSelection : startSelection;
+        const first = isForward ? start : end;
+        const last = isForward ? end : start;
 
         if (e.key === 'Backspace' || e.key === 'Delete') {
           e.preventDefault();
-          deleteSelectionAndMerge(startSelection, endSelection, blocks, updateBlockText, deleteBlock);
+          deleteSelectionAndMerge(start, end, currentBlocks, updateBlockText, deleteBlock);
           clearSelection();
         } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
           e.preventDefault();
@@ -368,11 +421,10 @@ export const useCrossBlockSelection = (
           focusBlock(last.blockId, last.offset);
           clearSelection();
         } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-          // Typing a character - delete selection and insert character
-          deleteSelectionAndMerge(startSelection, endSelection, blocks, updateBlockText, deleteBlock);
+          // Typing a character - delete selection first; the block's own keydown will insert the char
+          deleteSelectionAndMerge(start, end, currentBlocks, updateBlockText, deleteBlock);
           clearSelection();
         } else {
-          // Any other key clears selection
           clearSelection();
         }
       }
@@ -380,7 +432,8 @@ export const useCrossBlockSelection = (
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectionRects, startSelection, endSelection, blocks, updateBlockText, deleteBlock, focusBlock, clearSelection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateBlockText, deleteBlock, focusBlock, clearSelection]);
 
   return { selectionRects, clearSelection };
 };
@@ -408,7 +461,14 @@ function getSelectedContent(
     const blockEl = blockRefs.current[block.id];
     if (!blockEl) continue;
 
-    const blockText = blockEl.innerText || '';
+    // Read directly from the text node so offsets align with what caretRangeFromPoint returned
+    let blockText = '';
+    if (blockEl.firstChild && blockEl.firstChild.nodeType === Node.TEXT_NODE) {
+      blockText = (blockEl.firstChild as Text).textContent || '';
+    } else {
+      blockText = blockEl.textContent || '';
+    }
+
     let selectedText = blockText;
 
     if (i === firstIdx && i === lastIdx) {

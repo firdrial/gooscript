@@ -45,6 +45,7 @@ const TopBarMenu: React.FC = () => {
 
   return (
     <div 
+      data-menu-bar
       className="flex items-center bg-gray-900 border-b border-gray-700 px-2.5 h-8 shrink-0 font-sans text-sm select-none" 
       ref={menuBarRef}
     >
