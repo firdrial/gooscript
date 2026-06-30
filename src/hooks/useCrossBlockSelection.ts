@@ -388,52 +388,51 @@ export const useCrossBlockSelection = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockRefs, updateBlockText, deleteBlock, focusBlock, clearSelection]);
 
-  // Keyboard handling - uses refs so listeners are only registered once
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const rects = selectionRectsRef.current;
-      const start = startSelectionRef.current;
-      const end = endSelectionRef.current;
-      const currentBlocks = blocksRef.current;
+// Keyboard handling - uses refs so listeners are only registered once
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const rects = selectionRectsRef.current;
+    const start = startSelectionRef.current;
+    const end = endSelectionRef.current;
+    const currentBlocks = blocksRef.current;
 
-      if (rects.length > 0 && start && end) {
-        // Check for copy/cut/paste/select-all shortcuts - don't clear selection for these
-        if ((e.ctrlKey || e.metaKey) && ['c', 'x', 'v', 'a'].includes(e.key.toLowerCase())) {
-          return;
-        }
+    if (rects.length > 0 && start && end) {
+      const startIndex = currentBlocks.findIndex(b => b.id === start.blockId);
+      const endIndex = currentBlocks.findIndex(b => b.id === end.blockId);
+      const isForward = startIndex <= endIndex;
+      const first = isForward ? start : end;
+      const last = isForward ? end : start;
 
-        const startIndex = currentBlocks.findIndex(b => b.id === start.blockId);
-        const endIndex = currentBlocks.findIndex(b => b.id === end.blockId);
-        const isForward = startIndex <= endIndex;
-        const first = isForward ? start : end;
-        const last = isForward ? end : start;
-
-        if (e.key === 'Backspace' || e.key === 'Delete') {
-          e.preventDefault();
-          deleteSelectionAndMerge(start, end, currentBlocks, updateBlockText, deleteBlock);
-          clearSelection();
-        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-          e.preventDefault();
-          focusBlock(first.blockId, first.offset);
-          clearSelection();
-        } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-          e.preventDefault();
-          focusBlock(last.blockId, last.offset);
-          clearSelection();
-        } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-          // Typing a character - delete selection first; the block's own keydown will insert the char
-          deleteSelectionAndMerge(start, end, currentBlocks, updateBlockText, deleteBlock);
-          clearSelection();
-        } else {
-          clearSelection();
-        }
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        deleteSelectionAndMerge(start, end, currentBlocks, updateBlockText, deleteBlock);
+        clearSelection();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        focusBlock(first.blockId, first.offset);
+        clearSelection();
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        focusBlock(last.blockId, last.offset);
+        clearSelection();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Typing a character - delete selection first; the block's own keydown will insert the char
+        deleteSelectionAndMerge(start, end, currentBlocks, updateBlockText, deleteBlock);
+        clearSelection();
+      } else if (e.key === 'Escape') {
+        clearSelection();
+      } else if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      } else {
+        clearSelection();
       }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updateBlockText, deleteBlock, focusBlock, clearSelection]);
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks-exhaustive-deps
+}, [updateBlockText, deleteBlock, focusBlock, clearSelection]);
 
   return { selectionRects, clearSelection };
 };
